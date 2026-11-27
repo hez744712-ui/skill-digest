@@ -17,13 +17,13 @@ jobs:
           script: |
             // 想追蹤的 topic 與關鍵字，可自行增減
             const TOPICS = ['claude-skills', 'agent-skills', 'claude-code-skills', 'anthropic-skills'];
-            const KEYWORDS = ['"claude skill"', '"agent skill"', 'SKILL.md'];
+            const KEYWORDS = ['"claude skill"', '"agent skill"'];
             const TOP_N = 10;
 
             const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString().slice(0, 10);
             const terms = [
               ...TOPICS.map(t => `topic:${t}`),
-              ...KEYWORDS.map(k => `${k} in:name,description,readme`),
+              ...KEYWORDS.map(k => `${k} in:name,description`),
             ];
 
             async function search(extra) {
@@ -34,7 +34,10 @@ jobs:
                     q: `${term} ${extra} fork:false`,
                     sort: 'stars', order: 'desc', per_page: 30,
                   });
-                  for (const r of data.items) repos.set(r.full_name, r);
+                  for (const r of data.items) {
+                    // 只保留名稱或說明裡真的有提到 skill 的 repo
+                    if (/skill/i.test(`${r.name} ${r.description ?? ''}`)) repos.set(r.full_name, r);
+                  }
                 } catch (e) {
                   core.warning(`搜尋失敗：${term} → ${e.message}`);
                 }
